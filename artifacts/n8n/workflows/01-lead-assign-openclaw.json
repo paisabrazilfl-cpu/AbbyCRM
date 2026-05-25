@@ -1,0 +1,123 @@
+{
+  "name": "MTOS — Lead assignment with OpenClaw AI fallback",
+  "_description": "When a new lead is created, route it to a paralegal who handles that tort, is licensed in that state, and currently has the lowest open-lead count. Falls back to OpenClaw for complex routing decisions. Subscribe to event: lead.created.",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "mtos-lead-created",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "wh-trigger",
+      "name": "MTOS lead.created webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const lead = $json.lead || $json.payload?.lead || $json.payload || {};\nconst tort = lead.tort_type;\nconst state = (lead.state || '').toUpperCase();\nif (!tort || !state) {\n  throw new Error(`Cannot route lead ${lead.id}: missing tort_type or state`);\n}\nreturn [{ json: { lead_id: lead.id, tort, state, lead_data: lead } }];"
+      },
+      "id": "extract",
+      "name": "Extract tort + state",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.MTOS_API_BASE }}/api/paralegals?tort={{ encodeURIComponent($json.tort) }}&state={{ $json.state }}&sort=load_asc",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "fetch-paralegals",
+      "name": "GET /paralegals (tort+state, load_asc)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "credentials": { "httpHeaderAuth": { "id": "mtos-api-key", "name": "MTOS API Key (paralegals:read,leads:write)" } },
+      "position": [660, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Server already filtered by tort + state and ordered by lowest active\n// case count (sort=load_asc). Take [0] — the most-available qualified\n// paralegal. The paralegals row carries `user_id` (the actual users.id\n// to write into leads.assigned_to); fall back to the row id only as a\n// last resort.\nconst list = Array.isArray($json) ? $json : ($json.paralegals || $json.items || []);\nconst ctx = $('Extract tort + state').item.json;\nif (!Array.isArray(list) || list.length === 0) {\n  throw new Error(`No paralegals available for tort='${ctx.tort}' state='${ctx.state}' — escalate to human queue`);\n}\nconst chosen = list[0];\nconst assignee_user_id = chosen.user_id ?? chosen.id;\nreturn [{ json: { lead_id: ctx.lead_id, tort: ctx.tort, state: ctx.state, assignee_user_id, paralegal_name: chosen.name, paralegal_load: chosen.active_cases } }];"
+      },
+      "id": "choose",
+      "name": "Pick lowest-load qualified paralegal",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.MTOS_API_BASE }}/api/leads/{{ $json.lead_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"assigned_to\": {{ $json.assignee_user_id }},\n  \"notes\": \"auto-routed by n8n: tort={{ $json.tort }} state={{ $json.state }} load={{ $json.paralegal_load }} → {{ $json.paralegal_name }}\"\n}",
+        "options": {}
+      },
+      "id": "assign",
+      "name": "PATCH /leads/:id (assign)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "credentials": { "httpHeaderAuth": { "id": "mtos-api-key", "name": "MTOS API Key (paralegals:read,leads:write)" } },
+      "position": [1140, 300]
+    },
+    {
+      "parameters": { "respondWith": "json", "responseBody": "={ \"ok\": true, \"lead_id\": $json.lead_id, \"assigned_to\": $json.assignee_user_id, \"paralegal\": $json.paralegal_name, \"tort\": $json.tort, \"state\": $json.state }" },
+      "id": "respond",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1380, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.OPENCLAW_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"action\": \"route_lead\",\n  \"lead_id\": \"{{ $json.lead_id }}\",\n  \"tort\": \"{{ $json.tort }}\",\n  \"state\": \"{{ $json.state }}\",\n  \"lead_data\": {{ $json.lead_data }}\n}",
+        "options": { "timeout": 30000 }
+      },
+      "id": "openclaw",
+      "name": "OpenClaw AI routing (fallback)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [900, 500]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.MTOS_API_BASE }}/api/leads/{{ $json.lead_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"assigned_to\": {{ $json.assignee_user_id }},\n  \"notes\": \"auto-routed by OpenClaw AI: tort={{ $json.tort }} state={{ $json.state }} → {{ $json.paralegal_name }}\"\n}",
+        "options": {}
+      },
+      "id": "assign-oc",
+      "name": "PATCH /leads/:id (OpenClaw)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "credentials": { "httpHeaderAuth": { "id": "mtos-api-key", "name": "MTOS API Key (paralegals:read,leads:write)" } },
+      "position": [1140, 500]
+    }
+  ],
+  "connections": {
+    "MTOS lead.created webhook": { "main": [[{ "node": "Extract tort + state", "type": "main", "index": 0 }]] },
+    "Extract tort + state": { "main": [[{ "node": "GET /paralegals (tort+state, load_asc)", "type": "main", "index": 0 }]] },
+    "GET /paralegals (tort+state, load_asc)": { "main": [[{ "node": "Pick lowest-load qualified paralegal", "type": "main", "index": 0 }]] },
+    "Pick lowest-load qualified paralegal": { "main": [[{ "node": "PATCH /leads/:id (assign)", "type": "main", "index": 0 }]] },
+    "PATCH /leads/:id (assign)": { "main": [[{ "node": "Respond OK", "type": "main", "index": 0 }]] },
+    "GET /paralegals (tort+state, load_asc)": { "main": [[{ "node": "OpenClaw AI routing (fallback)", "type": "main", "index": 0 }]] },
+    "OpenClaw AI routing (fallback)": { "main": [[{ "node": "PATCH /leads/:id (OpenClaw)", "type": "main", "index": 0 }]] },
+    "PATCH /leads/:id (OpenClaw)": { "main": [[{ "node": "Respond OK", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}
