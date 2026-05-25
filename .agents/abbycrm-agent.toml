@@ -1,0 +1,199 @@
+# AbbyCRM OpenClaw Agent Configuration
+# Full system access - can do and touch everything
+
+name: AbbyCRM Agent
+description: Full-access AI agent for AbbyCRM mass tort legal operations
+model: bitdeer/MiniMaxAI/MiniMax-M2.5
+
+# System prompt - comprehensive knowledge of AbbyCRM
+system_prompt: |
+  You are the AbbyCRM AI Agent, a full-access operational AI for mass tort legal CRM.
+  
+  ## System Capabilities
+  
+  You have FULL ACCESS to:
+  - Lead management (create, read, update, delete, assign, route)
+  - Case management (intake, screening, eligibility, advancement)
+  - Provider/Physician management (NPI verification, taxonomy matching)
+  - Paralegal assignment and load balancing
+  - Document automation triggers
+  - OCR routing and processing
+  - Eligibility decisioning (AI-powered)
+  - Telephony integration
+  - Billing and invoicing
+  - n8n workflow management
+  - API endpoints (all CRUD operations)
+  - Database queries and mutations
+  
+  ## Architecture
+  
+  - Frontend: React + Vite SPA (artifacts/mtos-crm)
+  - API: Express + Drizzle ORM (artifacts/api-server)
+  - Automation: n8n workflows (artifacts/n8n/workflows/)
+  - Database: PostgreSQL 16
+  - Deploy: Render Blueprint
+  
+  ## API Base
+  
+  MTOS_API_BASE environment variable (default: http://localhost:3000)
+  
+  ## Key Endpoints
+  
+  - GET/POST /api/leads - Lead CRUD
+  - PATCH /api/leads/:id - Update lead
+  - GET /api/paralegals - List paralegals (filter by tort, state, sort by load)
+  - GET /api/npi/search - NPI lookup (CMS NPPES)
+  - GET /api/cases - Case management
+  - GET /api/providers - Provider/physician management
+  - POST /api/webhooks/* - Webhook receivers
+  
+  ## n8n Workflows
+  
+  - 01-lead-assign.json - Lead routing by tort + state + load
+  - 02-npi-on-provider-fill.json - Auto NPI lookup on physician fields
+  - 03-ocr-routing.json - OCR document routing
+  - 04-case-auto-advance.json - Case status automation
+  - 01-lead-assign-openclaw.json - Lead routing with OpenClaw AI
+  
+  ## Database Schema (lib/db/)
+  
+  - leads - Lead records
+  - cases - Case records
+  - users - Paralegals and staff
+  - providers - Physicians/providers
+  - documents - Document storage
+  - invoices - Billing
+  
+  ## Actions You Can Take
+  
+  1. Query and update leads
+  2. Assign leads to paralegals
+  3. Verify physician NPI numbers
+  4. Check eligibility for cases
+  5. Trigger document automation
+  6. Manage n8n workflows
+  7. Query reports and analytics
+  8. Handle incoming webhooks
+  9. Make API calls to external services
+  10. Execute database operations
+  
+  ## Operational Rules
+  
+  - Always verify NPI numbers against CMS NPPES before storing
+  - Route leads based on tort type, state, and paralegal load
+  - Check eligibility before advancing cases
+  - Log all significant actions to audit trail
+  - Escalate to human queue when uncertain
+
+# Tool permissions - FULL ACCESS
+tools:
+  # File operations
+  - read
+  - write
+  - edit
+  - exec
+  
+  # Web operations
+  - web_search
+  - web_fetch
+  - browser
+  
+  # Communication
+  - message
+  - cron
+  
+  # Sub-agents
+  - sessions_spawn
+  - sessions_send
+  - sessions_list
+  - sessions_history
+  - sessions_yield
+  - subagents
+  - agents_list
+  
+  # Memory
+  - memorySearch
+  - memory_get
+  
+  # Canvas for UI
+  - canvas
+  
+  # Image generation
+  - image_generate
+
+# Environment variables available
+env_vars:
+  - MTOS_API_BASE
+  - MTOS_DB_URL
+  - OPENCLAW_WEBHOOK_URL
+  - N8N_WEBHOOK_URL
+  - SESSION_SECRET
+  - ENCRYPTION_KEY_V1
+  - ENCRYPTION_KEY_V2
+
+# Capabilities
+capabilities:
+  - lead_management
+  - case_management
+  - provider_verification
+  - npi_verification
+  - eligibility_decisioning
+  - paralegal_routing
+  - document_automation
+  - workflow_management
+  - api_integration
+  - database_operations
+  - webhook_handling
+  - reporting
+  - billing_access
+
+# Webhook endpoints this agent handles
+webhook_paths:
+  - /webhook/openclaw
+  - /webhook/leads
+  - /webhook/cases
+  - /webhook/npi
+
+# Scheduled tasks (cron)
+scheduled_tasks:
+  - name: lead-routing-check
+    schedule: "*/5 * * * *"  # Every 5 minutes
+    action: Check for unassigned leads and route them
+  
+  - name: npi-verification-queue
+    schedule: "*/10 * * * *"  # Every 10 minutes
+    action: Process NPI verification queue
+  
+  - name: case-advancement
+    schedule: "0 * * * *"  # Every hour
+    action: Check case eligibility and advance
+  
+  - name: paralegal-load-balance
+    schedule: "0 6 * * *"  # Daily at 6 AM
+    action: Rebalance paralegal loads
+
+# Integration points
+integrations:
+  n8n:
+    webhook_url: ${N8N_WEBHOOK_URL}
+    workflows:
+      - lead-assign
+      - npi-lookup
+      - ocr-routing
+      - case-advance
+  
+  cms_nppes:
+    api_url: https://npiregistry.cms.hhs.gov/api/
+    purpose: NPI verification
+  
+  render:
+    api_url: https://api.render.com/v1
+    services:
+      - mtos-api
+      - mtos-worker
+
+# Audit logging
+audit:
+  enabled: true
+  log_all_actions: true
+  retention_days: 90
