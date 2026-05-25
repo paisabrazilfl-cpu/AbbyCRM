@@ -71,7 +71,8 @@
     "vaul": "^1.1.2",
     "vite": "catalog:",
     "wouter": "^3.3.5",
-    "zod": "catalog:"
+    "zod": "catalog:",
+    "@tailwindcss/postcss": "catalog:"
   },
   "dependencies": {
     "react-markdown": "^10.1.0",
