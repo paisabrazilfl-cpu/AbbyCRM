@@ -1,13 +1,11 @@
 import { Link, useLocation } from "wouter";
 import {
   LayoutDashboard, Users, FileText, Briefcase, Phone, 
-  FileUp, ShieldAlert, Activity, UserCheck, Clock,
-  ClipboardList, Globe, Brain, Stethoscope, Scale,
+  FileUp, ShieldAlert, Activity, UserCheck,
+  ClipboardList, Globe, Stethoscope, Scale,
   Workflow, Settings, Building, CreditCard, Shield,
-  Sparkles, Bot, Wand2, Inbox, Search, Newspaper,
-  TrendingUp, FileSignature, Library, Wrench, Webhook,
-  Plug, Grid3x3, UserCog, Building2, Eye, ListChecks,
-  Skull, BarChart3, BookOpen, GitBranch,
+  Sparkles, Wand2, Inbox, FileSignature,
+  Skull, BarChart3, GitBranch,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/auth-context";
@@ -15,7 +13,7 @@ import { useAuth } from "@/contexts/auth-context";
 type NavItem = { name: string; href: string; icon: typeof LayoutDashboard; superAdminOnly?: boolean };
 type NavSection = { section: string; items: NavItem[]; superAdminOnly?: boolean };
 
-// SIMPLIFIED NAVIGATION - User-friendly grouping
+// SIMPLIFIED NAVIGATION - Removed ambiguous/unnecessary items
 export const navigation: NavSection[] = [
   // ── 1. MAIN ────────────────────────────────────────────────────────────────
   {
@@ -28,20 +26,18 @@ export const navigation: NavSection[] = [
   },
 
   // ── 2. INTAKE ───────────────────────────────────────────────────────────────
-  // Client-facing intake forms + leads/cases
   {
     section: "Intake",
     items: [
-      { name: "Website Forms",   href: "/web-forms",       icon: Globe         }, // Renamed from "Web Forms"
-      { name: "Intake Forms",    href: "/intake-forms",   icon: ClipboardList }, // Renamed from "Form Engine"
-      { name: "All Leads",       href: "/leads",           icon: Users         },
+      { name: "Website Forms",   href: "/web-forms",       icon: Globe         },
+      { name: "Intake Forms",    href: "/intake-forms",    icon: ClipboardList },
+      { name: "Leads",           href: "/leads",           icon: Users         },
       { name: "New Lead",        href: "/leads/new",       icon: FileUp        },
       { name: "Cases",           href: "/cases",           icon: Briefcase     },
     ],
   },
 
   // ── 3. WORK ────────────────────────────────────────────────────────────────
-  // Day-to-day operations
   {
     section: "Work",
     items: [
@@ -49,7 +45,6 @@ export const navigation: NavSection[] = [
       { name: "Job Queue",     href: "/job-queue",    icon: Activity    },
       { name: "Paralegals",    href: "/paralegals",   icon: UserCheck   },
       { name: "Calls",         href: "/calls",        icon: Phone       },
-      { name: "Timeline",      href: "/timeline",     icon: Clock       },
     ],
   },
 
@@ -59,23 +54,19 @@ export const navigation: NavSection[] = [
     items: [
       { name: "All Documents",  href: "/documents",          icon: FileText      },
       { name: "OCR Inbox",      href: "/ocr-inbox",          icon: Inbox         },
-      { name: "Doc Review",     href: "/doc-review",         icon: Search        },
+      { name: "Doc Review",     href: "/doc-review",         icon: FileText     },
       { name: "AI Drafting",    href: "/drafting",           icon: Wand2         },
       { name: "Templates",      href: "/document-templates", icon: FileSignature },
     ],
   },
 
   // ── 5. INTELLIGENCE ────────────────────────────────────────────────────────
-  // Research and AI tools
   {
     section: "Intelligence",
     items: [
       { name: "ABBY AI",         href: "/abby",            icon: Sparkles    },
-      { name: "AI Agents",       href: "/ai-agents",       icon: Bot         },
       { name: "NPI Lookup",      href: "/npi-lookup",      icon: Stethoscope },
       { name: "Decision Engine", href: "/decision-engine", icon: Scale       },
-      { name: "Tort News",       href: "/news",            icon: Newspaper   },
-      { name: "Competitive",     href: "/competitive-intel", icon: Eye       },
     ],
   },
 
@@ -84,9 +75,6 @@ export const navigation: NavSection[] = [
     section: "Automation",
     items: [
       { name: "Automations",   href: "/automations",           icon: Workflow },
-      { name: "Self-Heal",     href: "/self-heal",             icon: Wrench   },
-      { name: "Webhook Log",   href: "/automation-deliveries", icon: Webhook  },
-      { name: "API Setup",     href: "/n8n-setup",             icon: Plug     },
     ],
   },
 
@@ -94,11 +82,11 @@ export const navigation: NavSection[] = [
   {
     section: "Settings",
     items: [
-      { name: "Firm Settings",  href: "/firm-settings",        icon: Building    },
-      { name: "Team",           href: "/users",                icon: UserCog     },
-      { name: "Billing",        href: "/billing",              icon: CreditCard  },
-      { name: "Compliance",     href: "/compliance",           icon: Shield      },
-      { name: "Integrations",   href: "/integrations",         icon: Plug        },
+      { name: "Firm Settings",  href: "/firm-settings",    icon: Building    },
+      { name: "Team",           href: "/users",            icon: UserCheck   },
+      { name: "Billing",        href: "/billing",          icon: CreditCard  },
+      { name: "Compliance",     href: "/compliance",       icon: Shield      },
+      { name: "Integrations",   href: "/integrations",     icon: Workflow    },
     ],
   },
 
