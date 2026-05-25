@@ -1,11 +1,13 @@
 import { Link, useLocation } from "wouter";
 import {
-  LayoutDashboard, Users, UserCog, FileText, PlusCircle, Briefcase, Inbox,
-  GitBranch, UserCheck, BarChart3, Shield, Stethoscope, ShieldAlert, AppWindow,
-  Building2, ShieldCheck, FileSearch, Clock, Wand2, Brain, Plug, Newspaper,
-  TrendingUp, FileUp, Scale, Building, FileSignature, Grid3x3, Settings,
-  Activity, CreditCard, Phone, Workflow, Eye, BookOpen, Library,
-  Webhook, Wrench, Search, ListChecks, Bot, Skull, Sparkles,
+  LayoutDashboard, Users, FileText, Briefcase, Phone, 
+  FileUp, ShieldAlert, Activity, UserCheck, Clock,
+  ClipboardList, Globe, Brain, Stethoscope, Scale,
+  Workflow, Settings, Building, CreditCard, Shield,
+  Sparkles, Bot, Wand2, Inbox, Search, Newspaper,
+  TrendingUp, FileSignature, Library, Wrench, Webhook,
+  Plug, Grid3x3, UserCog, Building2, Eye, ListChecks,
+  Skull, BarChart3, BookOpen, GitBranch,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/auth-context";
@@ -13,117 +15,94 @@ import { useAuth } from "@/contexts/auth-context";
 type NavItem = { name: string; href: string; icon: typeof LayoutDashboard; superAdminOnly?: boolean };
 type NavSection = { section: string; items: NavItem[]; superAdminOnly?: boolean };
 
+// SIMPLIFIED NAVIGATION - User-friendly grouping
 export const navigation: NavSection[] = [
-  // ── 1. HOME ────────────────────────────────────────────────────────────────
-  // High-level overview — the first thing anyone opens.
+  // ── 1. MAIN ────────────────────────────────────────────────────────────────
   {
-    section: "Home",
+    section: "Main",
     items: [
       { name: "Dashboard",   href: "/",            icon: LayoutDashboard },
       { name: "Pipeline",    href: "/pipeline",    icon: GitBranch       },
       { name: "Analytics",   href: "/analytics",   icon: BarChart3       },
-      { name: "User Manual", href: "/user-manual", icon: BookOpen        },
     ],
   },
 
-  // ── 2. LEADS & CASES ───────────────────────────────────────────────────────
-  // Everything that touches a claimant — intake, case status, calls.
+  // ── 2. INTAKE ───────────────────────────────────────────────────────────────
+  // Client-facing intake forms + leads/cases
   {
-    section: "Leads & Cases",
+    section: "Intake",
     items: [
-      { name: "All Leads",    href: "/leads",       icon: Users      },
-      { name: "New Lead",     href: "/leads/new",   icon: PlusCircle },
-      { name: "Import Leads", href: "/lead-import", icon: FileUp     },
-      { name: "Cases",        href: "/cases",       icon: Briefcase  },
-      { name: "Calls",        href: "/calls",       icon: Phone      },
+      { name: "Website Forms",   href: "/web-forms",       icon: Globe         }, // Renamed from "Web Forms"
+      { name: "Intake Forms",    href: "/intake-forms",   icon: ClipboardList }, // Renamed from "Form Engine"
+      { name: "All Leads",       href: "/leads",           icon: Users         },
+      { name: "New Lead",        href: "/leads/new",       icon: FileUp        },
+      { name: "Cases",           href: "/cases",           icon: Briefcase     },
     ],
   },
 
-  // ── 3. DOCUMENTS ──────────────────────────────────────────────────────────
-  // From raw scan → AI draft → signed template.
+  // ── 3. WORK ────────────────────────────────────────────────────────────────
+  // Day-to-day operations
+  {
+    section: "Work",
+    items: [
+      { name: "Review Queue",  href: "/review-queue", icon: ShieldAlert },
+      { name: "Job Queue",     href: "/job-queue",    icon: Activity    },
+      { name: "Paralegals",    href: "/paralegals",   icon: UserCheck   },
+      { name: "Calls",         href: "/calls",        icon: Phone       },
+      { name: "Timeline",      href: "/timeline",     icon: Clock       },
+    ],
+  },
+
+  // ── 4. DOCUMENTS ───────────────────────────────────────────────────────────
   {
     section: "Documents",
     items: [
-      { name: "All Documents", href: "/documents",          icon: FileText      },
-      { name: "OCR Inbox",     href: "/ocr-inbox",          icon: Inbox         },
-      { name: "Doc Review",    href: "/doc-review",         icon: FileSearch    },
-      { name: "AI Drafting",   href: "/drafting",           icon: Wand2         },
-      { name: "Templates",     href: "/document-templates", icon: FileSignature },
+      { name: "All Documents",  href: "/documents",          icon: FileText      },
+      { name: "OCR Inbox",      href: "/ocr-inbox",          icon: Inbox         },
+      { name: "Doc Review",     href: "/doc-review",         icon: Search        },
+      { name: "AI Drafting",    href: "/drafting",           icon: Wand2         },
+      { name: "Templates",      href: "/document-templates", icon: FileSignature },
     ],
   },
 
-  // ── 4. OPERATIONS ─────────────────────────────────────────────────────────
-  // Day-to-day workflow — who's working on what, what needs attention.
+  // ── 5. INTELLIGENCE ────────────────────────────────────────────────────────
+  // Research and AI tools
   {
-    section: "Operations",
+    section: "Intelligence",
     items: [
-      { name: "Review Queue", href: "/review-queue", icon: ShieldAlert },
-      { name: "Job Queue",    href: "/job-queue",    icon: Activity    },
-      { name: "Paralegals",   href: "/paralegals",   icon: UserCheck   },
-      { name: "Timeline",     href: "/timeline",     icon: Clock       },
-    ],
-  },
-
-  // ── 5. LEAD GEN & RESEARCH ────────────────────────────────────────────────
-  // Building intake forms, studying competitors, and staying current on news.
-  {
-    section: "Lead Gen & Research",
-    items: [
-      { name: "Intake Form",       href: "/form-engine",       icon: AppWindow  },
-      { name: "Public Forms",      href: "/web-forms",         icon: ListChecks },
-      { name: "Form API",          href: "/forms-api",         icon: Library    },
-      { name: "Competitive Intel", href: "/competitive-intel", icon: Eye        },
-      { name: "Ads Libraries",     href: "/ads-libraries",     icon: Search     },
-      { name: "Tort News",         href: "/news",              icon: Newspaper  },
-      { name: "Financial News",    href: "/financial-news",    icon: TrendingUp },
-    ],
-  },
-
-  // ── 6. AI AGENTS & CLINICAL ───────────────────────────────────────────────
-  // Autonomous agents, provider lookup, case qualification, predictive scoring.
-  {
-    section: "AI & Clinical",
-    items: [
-      { name: "Abby",            href: "/abby",            icon: Sparkles    },
+      { name: "ABBY AI",         href: "/abby",            icon: Sparkles    },
       { name: "AI Agents",       href: "/ai-agents",       icon: Bot         },
       { name: "NPI Lookup",      href: "/npi-lookup",      icon: Stethoscope },
       { name: "Decision Engine", href: "/decision-engine", icon: Scale       },
-      { name: "Praxis AI",       href: "/predictive",      icon: Brain       },
+      { name: "Tort News",       href: "/news",            icon: Newspaper   },
+      { name: "Competitive",     href: "/competitive-intel", icon: Eye       },
     ],
   },
 
-  // ── 7. AUTOMATION ─────────────────────────────────────────────────────────
-  // Workflows that run without a human pressing a button.
+  // ── 6. AUTOMATION ─────────────────────────────────────────────────────────
   {
     section: "Automation",
     items: [
-      { name: "Automations",  href: "/automations",           icon: Workflow },
-      { name: "Self-Heal",    href: "/self-heal",             icon: Wrench   },
-      { name: "Webhook Log",  href: "/automation-deliveries", icon: Webhook  },
-      { name: "API Setup",    href: "/n8n-setup",             icon: Plug     },
+      { name: "Automations",   href: "/automations",           icon: Workflow },
+      { name: "Self-Heal",     href: "/self-heal",             icon: Wrench   },
+      { name: "Webhook Log",   href: "/automation-deliveries", icon: Webhook  },
+      { name: "API Setup",     href: "/n8n-setup",             icon: Plug     },
     ],
   },
 
-  // ── 8. SETTINGS ───────────────────────────────────────────────────────────
-  // Configuration you set once and rarely touch.
+  // ── 7. SETTINGS ───────────────────────────────────────────────────────────
   {
     section: "Settings",
     items: [
-      { name: "Firm Settings",     href: "/firm-settings",        icon: Building    },
-      { name: "Team Members",      href: "/users",                icon: UserCog     },
-      { name: "Vendors",           href: "/vendors",              icon: Building2   },
-      { name: "Buyers",            href: "/buyers",               icon: Building    },
-      { name: "Assignment Matrix", href: "/template-assignments", icon: Grid3x3     },
-      { name: "Workflow Settings", href: "/workflow-settings",    icon: Settings    },
-      { name: "Integrations",      href: "/integrations",         icon: Plug        },
-      { name: "Billing",           href: "/billing",              icon: CreditCard  },
-      { name: "Compliance",        href: "/compliance",           icon: Shield      },
-      { name: "Security",          href: "/security",             icon: ShieldCheck },
+      { name: "Firm Settings",  href: "/firm-settings",        icon: Building    },
+      { name: "Team",           href: "/users",                icon: UserCog     },
+      { name: "Billing",        href: "/billing",              icon: CreditCard  },
+      { name: "Compliance",     href: "/compliance",           icon: Shield      },
+      { name: "Integrations",   href: "/integrations",         icon: Plug        },
     ],
   },
 
-  // ── 9. BOS-OMEGA ──────────────────────────────────────────────────────────
-  // Owner-only control panel. Never visible to any role below super_admin.
+  // ── 8. BOS-OMEGA ──────────────────────────────────────────────────────────
   {
     section: "BOS-OMEGA",
     superAdminOnly: true,
@@ -153,10 +132,8 @@ export function SidebarNav({ onNavigate }: SidebarNavProps) {
   return (
     <nav className="flex-1 overflow-y-auto px-2 py-2" aria-label="Primary">
       {visibleNav.map((group) => (
-          <div key={group.section} className="mb-1">
-            <div
-              className="px-2 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40"
-            >
+          <div key={group.section} className="mb-3">
+            <div className="px-2 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/40">
               {group.section}
             </div>
             <div className="space-y-0.5">
