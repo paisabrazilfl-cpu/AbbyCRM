@@ -14,4 +14,4 @@ RUN corepack enable \
   && pnpm --filter @workspace/mtos-crm run build \
   && pnpm --filter @workspace/api-server run build
 
-CMD ["node", "--enable-source-maps", "artifacts/api-server/dist/server/index.mjs"]
+CMD ["sh", "-c", "pnpm --filter @workspace/db run push-force && node --enable-source-maps artifacts/api-server/dist/server/index.mjs"]
