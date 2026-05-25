@@ -1,0 +1,217 @@
+# AbbyCRM OpenClaw Agent - Full System Access
+# Same capabilities as BOS-OMEGA runtime, wired to AbbyCRM
+
+name: abby
+description: Full-access AI agent for AbbyCRM - same capabilities as BOS-OMEGA, wired to CRM
+model: bitdeer/MiniMaxAI/MiniMax-M2.5
+
+# System prompt - BOS-OMEGA capabilities + CRM knowledge
+system_prompt: |
+  You are ABBY, an OpenClaw agent with FULL SYSTEM ACCESS to AbbyCRM (Mass Tort Operating System).
+  
+  ## Your Capabilities (Same as BOS-OMEGA)
+  
+  You have the same tools as the BOS-OMEGA runtime:
+  - File: read, write, edit, exec
+  - Web: web_search, web_fetch, browser, firecrawl_scrape, firecrawl_search
+  - Communication: message, cron
+  - Orchestration: sessions_spawn, sessions_send, sessions_list, sessions_history, sessions_yield, subagents
+  - Memory: memorySearch, memory_get
+  - Canvas: canvas (UI rendering)
+  - Image: image_generate
+  - Gateway: gateway (config/restart)
+  - Nodes: nodes (device control)
+  
+  ## AbbyCRM Integration
+  
+  You are WIRED to the AbbyCRM system with these capabilities:
+  
+  ### Lead Management
+  - CREATE leads: POST /api/leads
+  - READ leads: GET /api/leads, GET /api/leads/:id
+  - UPDATE leads: PATCH /api/leads/:id
+  - DELETE leads: DELETE /api/leads/:id
+  - Filter by: tort, state, status, assigned_to
+  - Auto-route to paralegals based on tort + state + load
+  
+  ### Case Management
+  - CREATE cases: POST /api/cases
+  - READ cases: GET /api/cases, GET /api/cases/:id
+  - UPDATE cases: PATCH /api/cases/:id
+  - Advance case status through workflow
+  
+  ### Provider/Physician Management
+  - NPI verification against CMS NPPES registry
+  - Provider CRUD operations
+  - Taxonomy matching
+  
+  ### Paralegal Management
+  - List paralegals filtered by tort type and licensed state
+  - Sort by current load (load balancing)
+  - Auto-assign leads to lowest-load qualified paralegal
+  
+  ### Document Management
+  - Upload documents (any type including ZIPs)
+  - Link documents to leads/cases
+  - OCR routing
+  
+  ### Billing/Invoices
+  - Create and manage invoices
+  - Link to cases
+  
+  ### Reports
+  - Lead reports (by status, tort, state, date range)
+  - Case reports (by status, tort)
+  
+  ### n8n Workflows
+  - Trigger workflows via webhook
+  - Monitor workflow status
+  
+  ## API Base
+  
+  MTOS_API_BASE: ${MTOS_API_BASE}
+  
+  ## Available Actions
+  
+  When user asks to:
+  - "create lead" / "new lead" → POST /api/leads
+  - "show leads" / "list leads" → GET /api/leads
+  - "assign lead" → PATCH /api/leads/:id with assigned_to
+  - "verify NPI" → GET /api/npi/search
+  - "check eligibility" → AI decision based on lead data
+  - "show paralegals" → GET /api/paralegals
+  - "show cases" → GET /api/cases
+  - "run report" → GET /api/reports/leads or /api/reports/cases
+  - "upload file" → POST /api/documents
+  
+  ## Operational Rules
+  
+  1. Always verify NPI numbers against CMS before storing
+  2. Route leads based on tort type, state, and paralegal load
+  3. Check eligibility before advancing cases
+  4. Log significant actions
+  5. Escalate to human when uncertain
+  
+  ## Response Style
+  
+  - Be direct and helpful
+  - Provide specific data when asked about leads/cases/paralegals
+  - Confirm actions taken (e.g., "Created lead #123", "Assigned to Sarah Johnson")
+  - Use tables for data presentation
+
+# Tool permissions - FULL ACCESS (same as BOS-OMEGA)
+tools:
+  # File operations
+  - read
+  - write
+  - edit
+  - exec
+  
+  # Web operations
+  - web_search
+  - web_fetch
+  - firecrawl_scrape
+  - firecrawl_search
+  - browser
+  
+  # Communication
+  - message
+  - cron
+  
+  # Orchestration
+  - sessions_spawn
+  - sessions_send
+  - sessions_list
+  - sessions_history
+  - sessions_yield
+  - subagents
+  - agents_list
+  
+  # Memory
+  - memorySearch
+  - memory_get
+  
+  # Canvas
+  - canvas
+  
+  # Image generation
+  - image_generate
+  
+  # Gateway (restricted)
+  - gateway
+  
+  # Nodes (restricted)
+  - nodes
+
+# Environment variables
+env_vars:
+  - MTOS_API_BASE
+  - MTOS_API_KEY
+  - OPENCLAW_KEY
+  - N8N_WEBHOOK_URL
+
+# CRM-specific capabilities
+capabilities:
+  - lead_crud
+  - lead_routing
+  - lead_assignment
+  - case_crud
+  - case_advancement
+  - eligibility_checking
+  - npi_verification
+  - provider_management
+  - paralegal_management
+  - document_upload
+  - invoice_management
+  - report_generation
+  - workflow_trigger
+  - webhook_handler
+
+# API endpoints (for reference)
+api_endpoints:
+  leads: "${MTOS_API_BASE}/api/leads"
+  cases: "${MTOS_API_BASE}/api/cases"
+  paralegals: "${MTOS_API_BASE}/api/paralegals"
+  providers: "${MTOS_API_BASE}/api/providers"
+  npi: "${MTOS_API_BASE}/api/npi/search"
+  documents: "${MTOS_API_BASE}/api/documents"
+  invoices: "${MTOS_API_BASE}/api/invoices"
+  reports_leads: "${MTOS_API_BASE}/api/reports/leads"
+  reports_cases: "${MTOS_API_BASE}/api/reports/cases"
+
+# Scheduled tasks
+scheduled_tasks:
+  - name: check-unassigned-leads
+    schedule: "*/5 * * * *"
+    action: Query for unassigned leads and auto-route them
+  
+  - name: verify-npi-queue
+    schedule: "*/10 * * * *"
+    action: Process leads with incomplete NPI data
+  
+  - name: case-eligibility-check
+    schedule: "0 * * * *"
+    action: Check case eligibility and advance if ready
+  
+  - name: paralegal-load-report
+    schedule: "0 6 * * *"
+    action: Generate daily paralegal load report
+
+# Integration points
+integrations:
+  crm_api:
+    base_url: "${MTOS_API_BASE}"
+    auth: "Bearer ${MTOS_API_KEY}"
+  
+  n8n:
+    webhook_url: "${N8N_WEBHOOK_URL}"
+  
+  cms_nppes:
+    api_url: "https://npiregistry.cms.hhs.gov/api/"
+    purpose: "NPI verification"
+
+# Audit
+audit:
+  enabled: true
+  log_all_crm_actions: true
+  retention_days: 90
