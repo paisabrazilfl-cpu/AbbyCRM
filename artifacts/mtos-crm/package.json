@@ -72,7 +72,7 @@
     "vite": "catalog:",
     "wouter": "^3.3.5",
     "zod": "catalog:",
-    "@tailwindcss/postcss": "catalog:"
+    "@tailwindcss/postcss": "^4.2.1"
   },
   "dependencies": {
     "react-markdown": "^10.1.0",
