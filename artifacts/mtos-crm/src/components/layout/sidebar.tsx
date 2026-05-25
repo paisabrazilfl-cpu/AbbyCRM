@@ -44,7 +44,7 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
     >
       <div className="flex h-14 items-center justify-between border-b border-sidebar-border px-4">
         <span className="font-bold text-lg tracking-tight text-sidebar-foreground">
-          MTOS<span className="text-primary">v1.0</span>
+          Abby<span className="text-primary"> CRM</span>
         </span>
         <button
           type="button"
