@@ -310,6 +310,127 @@ app.get('/api/reports/cases', async (req, res) => {
 });
 
 // ====================
+// WEB FORM SUBMISSION HANDLER
+// ====================
+
+app.post('/webhook/form-submitted', async (req, res) => {
+  const { form_id, tort_type, client_email, client_name, submission_data } = req.body;
+  
+  console.log(`[FORM] New submission: ${form_id} for ${tort_type}`);
+  
+  try {
+    // 1. Create lead from form submission
+    const leadData = {
+      name: client_name,
+      email: client_email,
+      tort_type: tort_type,
+      status: 'new',
+      source: 'website_form',
+      form_id: form_id,
+      ...submission_data
+    };
+    
+    const leadRes = await axios.post(`${MTOS_API_BASE}/api/leads`, leadData, {
+      headers: { ...authHeaders(), 'Content-Type': 'application/json' }
+    });
+    
+    const lead_id = leadRes.data.id;
+    console.log(`[FORM] Lead created: ${lead_id}`);
+    
+    // 2. Send confirmation email to client
+    await sendConfirmationEmail(client_email, client_name, tort_type, lead_id);
+    
+    // 3. Run NPI verification if physician info provided
+    let npiResult = null;
+    if (submission_data.physician_name || submission_data.physician_npi) {
+      npiResult = await verifyNPI(submission_data.physician_npi);
+      if (npiResult.verified) {
+        await axios.patch(`${MTOS_API_BASE}/api/leads/${lead_id}`, {
+          physician_npi: submission_data.physician_npi,
+          physician_name: submission_data.physician_name
+        }, { headers: { ...authHeaders(), 'Content-Type': 'application/json' } });
+      }
+    }
+    
+    // 4. Check eligibility
+    const eligibility = await checkEligibility(submission_data);
+    
+    // 5. Auto-route to paralegal if eligible
+    let routeResult = null;
+    if (eligibility.eligible) {
+      routeResult = await routeLead(lead_id, tort_type, submission_data.state, submission_data);
+    }
+    
+    // 6. Trigger n8n workflow if configured
+    await triggerN8nWorkflow('form-submission', {
+      lead_id,
+      tort_type,
+      client_email,
+      client_name,
+      eligibility,
+      npiResult,
+      routeResult
+    });
+    
+    res.json({
+      success: true,
+      lead_id,
+      eligible: eligibility.eligible,
+      eligibility_score: eligibility.score,
+      npi_verified: npiResult?.verified || false,
+      assigned_to: routeResult?.assignee || null,
+      message: eligibility.eligible 
+        ? 'Lead created and routed to paralegal'
+        : 'Lead created - does not meet eligibility criteria'
+    });
+    
+  } catch (error) {
+    console.error('[FORM] Error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+async function sendConfirmationEmail(email, name, tortType, leadId) {
+  try {
+    // Use MTOS email service
+    await axios.post(`${MTOS_API_BASE}/api/emails/send`, {
+      to: email,
+      subject: `Thank you for your ${tortType} case submission`,
+      template: 'form-confirmation',
+      data: {
+        name,
+        tortType,
+        leadId,
+        caseNumber: `CASE-${leadId}`
+      }
+    }, { headers: authHeaders() });
+    console.log(`[EMAIL] Confirmation sent to ${email}`);
+  } catch (error) {
+    console.error('[EMAIL] Failed to send confirmation:', error.message);
+  }
+}
+
+async function triggerN8nWorkflow(workflowName, data) {
+  try {
+    const n8nUrl = process.env.N8N_WEBHOOK_URL;
+    if (!n8nUrl) {
+      console.log('[N8N] No webhook URL configured');
+      return;
+    }
+    
+    await axios.post(n8nUrl, {
+      ...data,
+      workflow: workflowName,
+      timestamp: new Date().toISOString()
+    }, { timeout: 10000 });
+    
+    console.log(`[N8N] Triggered workflow: ${workflowName}`);
+  } catch (error) {
+    console.error('[N8N] Failed to trigger workflow:', error.message);
+  }
+}
+
+// ====================
 // OPENCLAW WEBHOOK
 // ====================
 
