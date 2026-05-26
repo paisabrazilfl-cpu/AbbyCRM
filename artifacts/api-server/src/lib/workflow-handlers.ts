@@ -330,7 +330,7 @@ export async function handleSendEsignPacket(payload: SendEsignPacketPayload): Pr
 
   let outcome;
   try {
-    outcome = await adapter.send(resolved.credentials, {
+    outcome = await adapter.send(credentials, {
       pdf: pdfBuf,
       fileName: `${tpl.name}.pdf`,
       subject: tpl.delivery_subject || `Please sign: ${tpl.name}`,
@@ -633,13 +633,35 @@ export async function handleSendWorkflowEmail(payload: SendWorkflowEmailPayload)
     explicitIntegrationId: explicit_integration_id ?? null,
   });
 
-  if (!isResolved(resolved)) {
-    throw new Error(`No email provider configured (${resolved.reason}). Pick one on the Workflow Settings page.`);
+  const envEmailProvider = (process.env["EMAIL_PROVIDER"] || "sendgrid").trim().toLowerCase();
+  const envApiKey =
+    process.env["EMAIL_API_KEY"] ||
+    process.env["SENDGRID_API_KEY"] ||
+    process.env["RESEND_API_KEY"] ||
+    process.env["POSTMARK_API_KEY"] ||
+    process.env["MAILGUN_API_KEY"] ||
+    process.env["BREVO_API_KEY"] ||
+    process.env["AWS_SES_ACCESS_KEY_ID"] ||
+    "";
+
+  const provider = isResolved(resolved) ? resolved.provider : envEmailProvider;
+  const credentials = isResolved(resolved)
+    ? resolved.credentials
+    : {
+        api_key: envApiKey,
+        from_email: process.env["EMAIL_FROM_ADDRESS"],
+        from_name: process.env["EMAIL_FROM_NAME"],
+      };
+
+  if (!isResolved(resolved) && !envApiKey) {
+    throw new Error(
+      `No email provider configured (${resolved.reason}). Pick one on the Workflow Settings page or set EMAIL_PROVIDER, EMAIL_API_KEY, and EMAIL_FROM_ADDRESS in the deployment environment.`,
+    );
   }
 
-  const adapter = getEmailAdapter(resolved.provider);
+  const adapter = getEmailAdapter(provider);
   if (!adapter) {
-    throw new Error(`No email adapter wired for provider "${resolved.provider}".`);
+    throw new Error(`No email adapter wired for provider "${provider}".`);
   }
 
   const globalSettings = await db
@@ -649,10 +671,12 @@ export async function handleSendWorkflowEmail(payload: SendWorkflowEmailPayload)
     .limit(1)
     .then((r) => r[0] ?? null);
 
-  const fromEmail = resolved.credentials.from_email
+  const fromEmail = credentials.from_email
+    || process.env["EMAIL_FROM_ADDRESS"]
     || globalSettings?.fromAddress
     || "noreply@example.com";
-  const fromName = resolved.credentials.from_name
+  const fromName = credentials.from_name
+    || process.env["EMAIL_FROM_NAME"]
     || globalSettings?.fromName
     || "MTOS";
 
@@ -669,8 +693,8 @@ export async function handleSendWorkflowEmail(payload: SendWorkflowEmailPayload)
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    logger.error({ err, to, subject, provider: resolved.provider }, "Email adapter threw");
-    throw new Error(`Email adapter ${resolved.provider} threw: ${msg}`);
+    logger.error({ err, to, subject, provider }, "Email adapter threw");
+    throw new Error(`Email adapter ${provider} threw: ${msg}`);
   }
 
   if (!outcome.ok) {
@@ -679,7 +703,7 @@ export async function handleSendWorkflowEmail(payload: SendWorkflowEmailPayload)
     return;
   }
 
-  logger.info({ to, subject, provider: resolved.provider, external_id: outcome.externalMessageId }, "Workflow email sent");
+  logger.info({ to, subject, provider, external_id: outcome.externalMessageId }, "Workflow email sent");
 }
 
 // =============================================================================
